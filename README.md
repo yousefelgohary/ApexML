@@ -5,6 +5,12 @@
   <p><b>Enterprise-Grade ML Dashboard | Powered by Gemini AI</b></p>
 
   <p>
+    <a href="https://apexml.streamlit.app" target="_blank">
+      <img src="https://img.shields.io/badge/🟢_Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Live Demo" />
+    </a>
+  </p>
+
+  <p>
     <a href="https://github.com/yousefelgohary/ApexML/issues">Report Bug</a>
     ·
     <a href="https://github.com/yousefelgohary/ApexML/issues">Request Feature</a>
