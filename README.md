@@ -2,7 +2,6 @@
   <img src="assets/ApexML_Logo.png" alt="ApexML Logo" width="200" />
   <h1>ApexML</h1>
   <p><em>Elevating Data. Maximizing Metrics.</em></p>
-  <p><b>Enterprise-Grade ML Dashboard | Powered by Gemini AI</b></p>
 
   <p>
     <a href="https://apexml.streamlit.app" target="_blank">
@@ -19,7 +18,7 @@
 
 <hr />
 
-## 🚀 About ApexML
+## 🔖 About ApexML
 
 **ApexML** is a comprehensive, AI-powered Streamlit dashboard designed for end-to-end Machine Learning workflows. Whether you're a data scientist, analyst, or enthusiast, ApexML streamlines your journey from raw data to robust predictions. 
 
