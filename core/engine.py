@@ -286,6 +286,13 @@ def infer_task(y: pd.Series) -> str:
     ):
         return "classification"
     unique = non_null.nunique()
+    if pd.api.types.is_float_dtype(non_null) and unique > 2:
+        try:
+            vals = non_null.to_numpy(dtype=float, copy=False)
+            if not np.all(np.isclose(vals, np.round(vals), equal_nan=True)):
+                return "regression"
+        except Exception:
+            pass
     ratio = unique / max(len(non_null), 1)
     threshold = max(15, int(math.sqrt(max(len(non_null), 1))))
     if unique <= threshold and ratio <= 0.10:

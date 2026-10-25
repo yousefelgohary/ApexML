@@ -5,9 +5,11 @@ secondaryBackgroundColor = "#F8FAFC"
 textColor = "#0F172A"
 font = "sans serif"
 
+[client]
+showSidebarNavigation = false
+
 [server]
 maxUploadSize = 500
-enableCORS = false
 headless = true
 
 [browser]

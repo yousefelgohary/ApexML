@@ -186,7 +186,7 @@ def plot_missing_heatmap(df: pd.DataFrame) -> go.Figure:
     missing_matrix = display_df.isnull().astype(int)
     fig = go.Figure(data=go.Heatmap(
         z=missing_matrix.values.T,
-        x=list(range(len(df))),
+        x=display_df.index.tolist(),
         y=missing_matrix.columns.tolist(),
         colorscale=[[0, "#10B981"], [1, "#EF4444"]],
         showscale=True,

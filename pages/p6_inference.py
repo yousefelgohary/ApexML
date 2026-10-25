@@ -41,7 +41,11 @@ def _predict(bundle: dict, X: pd.DataFrame):
     if bundle.get("competition"):
         return predict_competition_bundle(bundle, X)
     pipe = bundle["pipeline"]
-    pred = pipe.predict(X)
+    if bundle["task"] == "dimensionality_reduction":
+        pred = pipe.transform(X)
+        pred = [str(list(np.round(p, 4))) for p in pred]
+    else:
+        pred = pipe.predict(X)
     probs = pipe.predict_proba(X) if bundle["task"] == "classification" and hasattr(pipe, "predict_proba") else None
     return pred, probs
 
@@ -50,6 +54,8 @@ def _decode(bundle: dict, pred):
     if bundle["task"] == "classification":
         enc = bundle.get("target_encoder")
         return enc.inverse_transform(np.asarray(pred).astype(int)) if enc is not None else pred
+    if bundle["task"] in ["clustering", "dimensionality_reduction"]:
+        return pred
     return np.asarray(pred, dtype=float)
 
 
@@ -87,7 +93,10 @@ def render():
     bundles = st.session_state.get("model_bundles", {})
     setup = st.session_state.get("dataset_setup")
     df = st.session_state.get("df_original")
-    if not setup or df is None:
+    if df is None:
+        st.error("Dataset is missing. Please re-upload your data on the Dataset Overview page.")
+        return
+    if final_bundle["task"] not in ["clustering", "dimensionality_reduction"] and not setup:
         st.error("Dataset setup is missing. Return to ML Studio → Setup.")
         return
 
@@ -111,7 +120,10 @@ def render():
         "📝 Single Prediction", "🎯 Doctor's 10 Cases", "📂 Batch Prediction"
     ])
 
-    raw_cols = _raw_feature_columns(df, setup)
+    if bundle["task"] in ["clustering", "dimensionality_reduction"]:
+        raw_cols = bundle["feature_columns"]
+    else:
+        raw_cols = _raw_feature_columns(df, setup)
 
     with tab_single:
         st.subheader("📝 Enter One New Case")
@@ -132,7 +144,7 @@ def render():
         if st.button("🔮 Generate Prediction", type="primary", key="single_predict"):
             try:
                 raw = pd.DataFrame([values])
-                X, extras = _prepare(raw, bundle, setup)
+                X, extras = _prepare(raw, bundle, setup or {})
                 pred, probs = _predict(bundle, X)
                 decoded = _decode(bundle, pred)
                 st.markdown("---")
@@ -148,6 +160,15 @@ def render():
                         labels = [str(x) for x in enc.classes_] if enc is not None else [str(i) for i in range(probs.shape[1])]
                         pframe = pd.DataFrame({"Class": labels, "Probability": probs[0]})
                         st.plotly_chart(px.bar(pframe, x="Probability", y="Class", orientation="h", range_x=[0,1], color="Probability", color_continuous_scale="Teal", template="plotly_white"), use_container_width=True)
+                elif bundle["task"] == "clustering":
+                    st.markdown(
+                        f'''<div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(5,150,105,.04));border:3px solid #10B981;border-radius:16px;padding:24px;text-align:center;">
+                        <div style="font-size:2.5rem;font-weight:800;color:#059669;">Cluster {decoded[0]}</div>
+                        <div style="color:#6B7280;">Predicted Segment</div></div>''',
+                        unsafe_allow_html=True,
+                    )
+                elif bundle["task"] == "dimensionality_reduction":
+                    st.metric("Reduced Components", f"{decoded[0]}")
                 else:
                     st.metric("Predicted Value", f"{float(decoded[0]):,.6g}")
             except Exception as exc:
@@ -185,7 +206,7 @@ def render():
                 st.success("✅ 10/10 cases detected — ready.")
                 if st.button("🎯 Predict All 10 Cases", type="primary", use_container_width=True, key="predict_ten"):
                     try:
-                        X, extras = _prepare(raw_cases, final_bundle, setup)
+                        X, extras = _prepare(raw_cases, final_bundle, setup or {})
                         pred, probs = _predict(final_bundle, X)
                         decoded = _decode(final_bundle, pred)
                         out = raw_cases.copy().reset_index(drop=True)
@@ -212,7 +233,9 @@ def render():
             st.download_button("💾 Download 10 Predictions", out.to_csv(index=False).encode("utf-8"), file_name="ApexML_doctor_10_predictions.csv", mime="text/csv", use_container_width=True)
 
             with st.expander("After the doctor reveals the correct answers — calculate our score"):
-                if final_bundle["task"] == "classification":
+                if final_bundle["task"] in ["clustering", "dimensionality_reduction"]:
+                    st.info("Score calculation is not applicable for Unsupervised Learning as there are no 'correct' ground-truth answers.")
+                elif final_bundle["task"] == "classification":
                     classes = [str(x) for x in final_bundle["target_encoder"].classes_]
                     actual = pd.DataFrame({"Case": np.arange(1,11), "Actual": [classes[0]] * 10})
                     actual = st.data_editor(actual, hide_index=True, num_rows="fixed", column_config={"Actual": st.column_config.SelectboxColumn("Actual", options=classes)}, key="ten_actual")
@@ -250,7 +273,7 @@ def render():
         if uploaded is not None:
             try:
                 raw = _read_upload(uploaded)
-                X, extras = _prepare(raw, bundle, setup)
+                X, extras = _prepare(raw, bundle, setup or {})
                 pred, probs = _predict(bundle, X)
                 decoded = _decode(bundle, pred)
                 out = raw.copy().reset_index(drop=True)

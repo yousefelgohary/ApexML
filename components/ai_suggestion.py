@@ -3,6 +3,7 @@ components/ai_suggestion.py
 Reusable AI Suggestion panel that calls Gemini and renders a styled suggestion box.
 """
 
+import hashlib
 import streamlit as st
 from utils.llm_utils import get_ai_suggestion
 
@@ -18,14 +19,15 @@ def render_ai_suggestion(context: str, title: str = "🤖 AI Smart Suggestion",
         expanded: Whether to expand by default.
         key: Unique key for the Streamlit button.
     """
+    ctx_hash = hashlib.md5(context.encode("utf-8")).hexdigest()[:12]
     with st.expander(title, expanded=expanded):
         col1, col2 = st.columns([5, 1])
         with col2:
-            btn_key = key or f"ai_btn_{hash(context)}"
+            btn_key = key or f"ai_btn_{ctx_hash}"
             refresh = st.button("🔄 Refresh", key=btn_key, help="Regenerate AI suggestion")
 
         # Cache key in session to avoid re-calling on every render
-        cache_key = f"ai_cache_{hash(context)}"
+        cache_key = f"ai_cache_{ctx_hash}"
         if cache_key not in st.session_state or refresh:
             with st.spinner("🧠 Generating AI suggestion..."):
                 suggestion = get_ai_suggestion(context)
@@ -43,7 +45,7 @@ def render_ai_suggestion(context: str, title: str = "🤖 AI Smart Suggestion",
         )
         
         # Render the suggestion text via native markdown so formatting (bold, lists) works
-        st.markdown(f"<div style='font-size: 0.9rem; line-height: 1.6; color: #0F172A;'>\n\n{suggestion}\n\n</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size: 0.9rem; line-height: 1.6;'>\n\n{suggestion}\n\n</div>", unsafe_allow_html=True)
         
         # Close the suggestion box div
         st.markdown("</div>", unsafe_allow_html=True)

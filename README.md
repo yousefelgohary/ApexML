@@ -94,18 +94,24 @@ Ensure you have Python 3.9+ installed.
    cd ApexML
    ```
 
-2. **Create a virtual environment (Recommended)**
+2. **Create and activate a virtual environment (Mandatory to avoid package conflicts)**
    ```bash
-   python -m venv venv
-   # On Windows
-   venv\Scripts\activate
+   # Using standard venv
+   python -m venv .venv
+   # On Windows (PowerShell)
+   .\.venv\Scripts\Activate.ps1
+   # On Windows (CMD)
+   .\.venv\Scripts\activate.bat
    # On macOS/Linux
-   source venv/bin/activate
+   source .venv/bin/activate
    ```
+   *(Or using [uv](https://github.com/astral-sh/uv) for ultra-fast setup: `uv venv .venv`)*
 
 3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
+   # Or with uv:
+   uv pip install -r requirements.txt
    ```
 
 4. **Set up environment variables**
@@ -118,7 +124,15 @@ Ensure you have Python 3.9+ installed.
 5. **Run the application**
    ```bash
    streamlit run app.py
+   # Or directly via venv:
+   .\.venv\Scripts\streamlit.exe run app.py
    ```
+
+### 💡 Common Issues & Troubleshooting
+
+* **`ImportError: cannot import name 'DEFAULT_EXCLUDED_CONTENT_TYPES' from 'starlette.middleware.gzip'`**
+  * **Cause:** Running Streamlit globally where an older `starlette` version (<0.40.0) is installed (often pinned by older `fastapi` installations).
+  * **Fix:** Always run ApexML inside an isolated `.venv` as described above, or run `pip install --upgrade starlette`.
 
 ---
 

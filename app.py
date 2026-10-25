@@ -19,12 +19,6 @@ st.set_page_config(
 
 # ── Imports ───────────────────────────────────────────────────────────────────
 from components.sidebar import render_sidebar
-import pages.p1_dataset_overview as p1
-import pages.p2_preprocessing as p2
-import pages.p3_feature_engineering as p3
-import pages.p4_ml_studio as p4
-import pages.p5_evaluation as p5
-import pages.p6_inference as p6
 
 
 # ── Session State Initialization ──────────────────────────────────────────────
@@ -210,8 +204,8 @@ def main():
         div[data-testid="stColumn"] {
             background: transparent !important;
         }
-        /* Invert logo in dark mode */
-        img { filter: brightness(0) invert(1) !important; }
+        /* Invert sidebar logo in dark mode without affecting main charts/images */
+        section[data-testid="stSidebar"] img { filter: brightness(0) invert(1) !important; }
         </style>
         """, unsafe_allow_html=True)
 
@@ -220,16 +214,22 @@ def main():
     if page == "Home":
         render_home()
     elif page == "Dataset Overview & Validation":
+        import pages.p1_dataset_overview as p1
         p1.render()
     elif page == "Smart Preprocessing & Cleaning":
+        import pages.p2_preprocessing as p2
         p2.render()
     elif page == "Feature Engineering & EDA":
+        import pages.p3_feature_engineering as p3
         p3.render()
     elif page == "Machine Learning Studio":
+        import pages.p4_ml_studio as p4
         p4.render()
     elif page == "Model Evaluation & Leaderboard":
+        import pages.p5_evaluation as p5
         p5.render()
     elif page == "Inference / Prediction":
+        import pages.p6_inference as p6
         p6.render()
 
 

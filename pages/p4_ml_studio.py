@@ -120,11 +120,20 @@ def _render_supervised(df: pd.DataFrame):
         target = st.selectbox("🎯 Select Target Variable", cols, index=max(0, idx), key="target_col_safe")
         inferred = infer_task(df[target])
         auto_name = "Classification" if inferred == "classification" else "Regression"
+        if st.session_state.get("_last_target_col_safe") != target:
+            st.session_state["_last_target_col_safe"] = target
+            st.session_state["task_type_safe"] = auto_name
         task_name = st.radio(
             "Task Type (auto-detected)", ["Classification", "Regression"],
             index=0 if inferred == "classification" else 1, horizontal=True, key="task_type_safe",
         )
         task = task_name.lower()
+        if st.session_state.get("_last_task_safe") != task:
+            st.session_state["_last_task_safe"] = task
+            valid_catalog = set(_model_options(task))
+            st.session_state["selected_models"] = [
+                m for m in st.session_state.get("selected_models", []) if m in valid_catalog
+            ]
 
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Auto Detected", auto_name)
@@ -398,6 +407,35 @@ def _render_unsupervised(df: pd.DataFrame):
             sil = silhouette_score(X, labels)
             st.metric("Silhouette Score", f"{sil:.4f}")
 
+            # --- Save to session state for Evaluation & Inference ---
+            from sklearn.pipeline import Pipeline
+            scaler = StandardScaler().fit(X_raw)
+            pipe = Pipeline([("scaler", scaler), ("model", model)])
+            
+            final_bundle = {
+                "task": "clustering",
+                "target_name": "Cluster",
+                "feature_columns": feature_cols,
+                "pipeline": pipe,
+                "final_refit": {"trained_on_all_labeled_rows": True, "rows": len(X_raw)},
+            }
+            
+            res_df = pd.DataFrame([{
+                "Model": "K-Means", 
+                "Test_Silhouette": sil,
+                "Generalization_Gap": 0.0,
+                "Model_Size_KB": 0.0,
+                "Fit_Seconds": 0.0
+            }])
+            
+            st.session_state["model_results"] = res_df
+            st.session_state["model_bundles"] = {"K-Means": final_bundle}
+            st.session_state["final_bundle"] = final_bundle
+            st.session_state["best_model_name"] = "K-Means"
+            st.session_state["eval_task_type"] = "clustering"
+            st.session_state["primary_metric"] = "Silhouette"
+            st.success("🏆 K-Means model trained and saved as Final Model! Open Evaluation or Inference to use it.")
+
     # ── Hierarchical ───────────────────────────────────────────────────────────
     elif mode == "Hierarchical Clustering":
         st.subheader("Hierarchical Clustering")
@@ -464,6 +502,35 @@ def _render_unsupervised(df: pd.DataFrame):
                                    title="PCA — 2D Projection", template="plotly_white",
                                    color_discrete_sequence=["#10B981"], opacity=0.7)
                 st.plotly_chart(fig2, use_container_width=True)
+
+            # --- Save to session state for Evaluation & Inference ---
+            from sklearn.pipeline import Pipeline
+            scaler = StandardScaler().fit(X_raw)
+            pipe = Pipeline([("scaler", scaler), ("model", pca_model)])
+            
+            final_bundle = {
+                "task": "dimensionality_reduction",
+                "target_name": "PCA Components",
+                "feature_columns": feature_cols,
+                "pipeline": pipe,
+                "final_refit": {"trained_on_all_labeled_rows": True, "rows": len(X_raw)},
+            }
+            
+            res_df = pd.DataFrame([{
+                "Model": "PCA", 
+                "Explained_Variance_%": sum(pca_model.explained_variance_ratio_) * 100,
+                "Generalization_Gap": 0.0,
+                "Model_Size_KB": 0.0,
+                "Fit_Seconds": 0.0
+            }])
+            
+            st.session_state["model_results"] = res_df
+            st.session_state["model_bundles"] = {"PCA": final_bundle}
+            st.session_state["final_bundle"] = final_bundle
+            st.session_state["best_model_name"] = "PCA"
+            st.session_state["eval_task_type"] = "dimensionality_reduction"
+            st.session_state["primary_metric"] = "Explained Variance"
+            st.success("🏆 PCA model trained and saved as Final Model! Open Evaluation or Inference to use it.")
 
     # ── t-SNE ─────────────────────────────────────────────────────────────────
     elif mode == "t-SNE":

@@ -19,6 +19,11 @@ def _require_results():
 
 
 def _best_standard_row(results: pd.DataFrame, task: str, metric: str):
+    if task == "clustering":
+        return results.sort_values("Test_Silhouette", ascending=False).iloc[0], "Test_Silhouette"
+    if task == "dimensionality_reduction":
+        return results.sort_values("Explained_Variance_%", ascending=False).iloc[0], "Explained_Variance_%"
+
     mapping = {
         "Accuracy": ("Test_Accuracy", False),
         "Balanced Accuracy": ("Test_Balanced_Accuracy", False),
@@ -100,6 +105,11 @@ def render():
                 st.plotly_chart(px.bar(melt, x="Model", y="Score", color="Metric", barmode="group", range_y=[0, 1], template="plotly_white"), use_container_width=True)
         elif "Test_RMSE" in results:
             st.plotly_chart(px.bar(results.sort_values("Test_RMSE"), x="Model", y="Test_RMSE", title="Test RMSE — Lower is Better", template="plotly_white"), use_container_width=True)
+        elif task in ["clustering", "dimensionality_reduction"]:
+            cols = [c for c in results.columns if c not in ["Model", "Generalization_Gap", "Model_Size_KB", "Fit_Seconds"]]
+            if cols:
+                melt = results.melt(id_vars="Model", value_vars=cols, var_name="Metric", value_name="Score")
+                st.plotly_chart(px.bar(melt, x="Model", y="Score", color="Metric", barmode="group", template="plotly_white"), use_container_width=True)
 
     with tab_diag:
         st.subheader("🔬 Generalization, Cross Validation & Cost")
@@ -132,7 +142,7 @@ def render():
                 st.plotly_chart(fig, use_container_width=True)
             if diag.get("classification_report") is not None:
                 st.dataframe(pd.DataFrame(diag["classification_report"]).T, use_container_width=True)
-        else:
+        elif task == "regression":
             model_name = st.selectbox("Model for regression errors", list(bundles.keys()), key="diag_reg_model")
             diag = details.get(model_name, {})
             if diag.get("y_test") is not None:
@@ -150,6 +160,8 @@ def render():
                     fig = px.scatter(frame, x="Predicted", y="Residual", opacity=.5, title="Residuals", template="plotly_white")
                     fig.add_hline(y=0, line_dash="dash")
                     st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Detailed residual and confusion matrix diagnostics are not applicable for Unsupervised Learning.")
 
     with tab_curves:
         if task == "classification" and split is not None:
@@ -172,6 +184,8 @@ def render():
                 st.info("ROC comparison here is shown for binary classification.")
         elif task == "regression":
             st.info("Regression error diagnostics are available in the Diagnostics tab.")
+        else:
+            st.info("ROC Curves are not applicable for Unsupervised Learning.")
 
     with tab_feat:
         st.subheader("📊 Feature Importance / Coefficients")
